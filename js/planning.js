@@ -1,6 +1,6 @@
 // 计划引擎：学科统计 + 每日任务队列（按权重 + 倒计时分配）
 import { flatCards } from './content.js';
-import { loadProgress, getWeights, getDailyCap, getScope, getChapters } from './store.js';
+import { loadProgress, getWeights, getDailyCap, getSpeed, getScope, getChapters } from './store.js';
 import { dayLeft } from './srs.js';
 
 const DEFAULT_WEIGHT = { cet4: 5, wulihua: 4, diangong: 4 };
@@ -47,7 +47,7 @@ export function subjectStats(subject) {
     else if (st.status !== 'mastered' && st.dueAt <= Date.now()) due++;
   }
   const days = dayLeft(subject.examDate);
-  const newPerDay = days > 0 ? Math.ceil(remainingNew / days) : 0;
+  const newPerDay = days > 0 ? Math.ceil(remainingNew / days) * getSpeed() : 0;
   return { total, learned, mastered, due, remainingNew, days, newPerDay };
 }
 

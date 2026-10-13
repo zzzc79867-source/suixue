@@ -47,6 +47,10 @@ export function getHistory() { return getMeta('history', {}); }
 export function getDailyCap() { return getMeta('dailyCap', 30); }
 export function setDailyCap(n) { setMeta('dailyCap', Math.max(0, Number(n) || 0)); }
 
+// 每日新课倍速（1-10），用于考前压缩或假期加速
+export function getSpeed() { return getMeta('speed', 3); }
+export function setSpeed(n) { setMeta('speed', Math.max(1, Math.min(10, Number(n) || 1))); }
+
 // 学习范围：{ 科目id: 最多学的单词数 }（0 = 全部；只限制 word 卡，不限制讲义/例题）
 export function getScope() { return getMeta('scope', { cet4: 1500 }); }
 export function setScope(id, n) { const sc = getScope(); sc[id] = Math.max(0, Number(n) || 0); setMeta('scope', sc); }

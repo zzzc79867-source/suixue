@@ -1,7 +1,7 @@
 import { el } from '../ui.js';
 import { loadSubjects } from '../content.js';
 import { subjectStats, getSubjectWeight } from '../planning.js';
-import { setWeight, getDailyCap, setDailyCap, getScope, setScope, getChapters, setChapters } from '../store.js';
+import { setWeight, getDailyCap, setDailyCap, getSpeed, setSpeed, getScope, setScope, getChapters, setChapters } from '../store.js';
 import { fmtDate } from '../srs.js';
 
 function pill(n, l) {
@@ -26,6 +26,20 @@ export async function renderPlan(container, nav) {
   );
   capCard.append(capStep);
   container.append(capCard);
+
+  const speed = getSpeed();
+  const speedCard = el('div', { class: 'set-card' });
+  speedCard.append(el('h3', null, '🚀 每日新课倍速'));
+  speedCard.append(el('div', { style: 'font-size:13px;color:#64748b;line-height:1.7', html: '在倒计时分配量基础上<b>加速新知识</b>。1× 按考试日期平摊，10× 考前冲刺。' }));
+  const speedStep = el('div', { class: 'stepper', style: 'margin-top:12px' });
+  speedStep.append(
+    el('span', { class: 'stepper-label' }, '倒计时分配量 × ' + speed),
+    el('button', { class: 'step-btn', onclick: () => { setSpeed(speed - 1); nav.onRefresh(); } }, '−'),
+    el('span', { class: 'step-val' }, speed + '×'),
+    el('button', { class: 'step-btn', onclick: () => { setSpeed(speed + 1); nav.onRefresh(); } }, '+')
+  );
+  speedCard.append(speedStep);
+  container.append(speedCard);
 
   for (const s of subjects) {
     const st = subjectStats(s);
