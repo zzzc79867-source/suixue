@@ -64,7 +64,7 @@ export function openStudy(items, teachCount, onDone) {
     let answered = false, ok = false;
 
     const isConceptLike = item.mode === 'teach' || item.mode === 'recall' || item.mode === 'example';
-    const cardEl = el('div', { class: 's-card' + (isConceptLike ? ' concept-card' : '') });
+    const cardEl = el('div', { class: 's-card active' + (isConceptLike ? ' concept-card' : '') });
     const inner = el('div', { class: 'inner' });
     const front = el('div', { class: 'face front' });
     const back = el('div', { class: 'face back' });
@@ -125,15 +125,6 @@ export function openStudy(items, teachCount, onDone) {
     inner.append(front, back);
     cardEl.append(inner);
     deck.append(cardEl);
-
-    if (idx + 1 < items.length) {
-      const nx = items[idx + 1];
-      const nxCard = nx.card;
-      const label = nx.mode === 'word' ? nxCard.front : (nxCard.title || nxCard.stem || '…');
-      const nextC = el('div', { class: 's-card', style: 'transform:scale(.94) translateY(14px);opacity:.55;z-index:1' });
-      nextC.append(el('div', { class: 'c-title', style: 'font-size:15px;color:#6b665c' }, label));
-      deck.append(nextC);
-    }
 
     renderActions();
     attachGesture(cardEl, item.mode);

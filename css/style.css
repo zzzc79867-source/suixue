@@ -421,6 +421,7 @@ button:active { transform: scale(0.97); }
   will-change: transform;
   cursor: grab;
 }
+.s-card.active { z-index: 2; }
 .s-card.flip .inner { transform: rotateY(180deg); }
 .inner {
   flex: 1;
@@ -428,6 +429,7 @@ button:active { transform: scale(0.97); }
   transform-style: preserve-3d;
   transition: transform 0.6s var(--spring);
   display: flex;
+  min-height: 0;
 }
 .face {
   position: absolute;
