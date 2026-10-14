@@ -22,7 +22,10 @@ const server = createServer(async (req, res) => {
     const file = normalize(join(root, p));
     if (!file.startsWith(root)) { res.writeHead(403); res.end('forbidden'); return; }
     const data = await readFile(file);
-    res.writeHead(200, { 'Content-Type': MIME[extname(file).toLowerCase()] || 'application/octet-stream' });
+    res.writeHead(200, {
+      'Content-Type': MIME[extname(file).toLowerCase()] || 'application/octet-stream',
+      'Cache-Control': 'no-store, must-revalidate'
+    });
     res.end(data);
   } catch (err) {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });

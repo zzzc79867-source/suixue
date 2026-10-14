@@ -80,6 +80,7 @@ export function openStudy(items, teachCount, onDone) {
       : item.mode === 'word' ? '📇 Study Buddy · 单词'
       : '🎯 Study Buddy · 测验';
     const badge = el('div', { class: 'study-badge' }, badgeText);
+    pane.scrollTop = 0;
 
     if (item.mode === 'teach') {
       const context = teachContext(subj, unit, card);
@@ -297,41 +298,11 @@ export function openStudy(items, teachCount, onDone) {
   }
 
   function attachGesture(cardEl, pane, mode) {
-    let dragging = false, moved = false, sx = 0, sy = 0, dx = 0, dy = 0;
-    cardEl.addEventListener('pointerdown', (e) => {
-      if (mode === 'question' || mode === 'teach') return;
-      dragging = true; moved = false; sx = e.clientX; sy = e.clientY; dx = 0; dy = 0;
-      try { cardEl.setPointerCapture(e.pointerId); } catch (err) {}
-    });
-    cardEl.addEventListener('pointermove', (e) => {
-      if (!dragging) return;
-      dx = e.clientX - sx; dy = e.clientY - sy;
-      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) moved = true;
-      cardEl.style.transition = 'none';
-      cardEl.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + (dx * 0.06) + 'deg)';
-    });
-    cardEl.addEventListener('pointerup', (e) => {
-      if (!dragging) return;
-      dragging = false;
-      if (Math.abs(dx) > 90) {
-        const dir = dx > 0 ? 1 : -1;
-        cardEl.style.transition = 'transform .3s,opacity .3s';
-        cardEl.style.transform = 'translate(' + (dir * 150) + '%,' + dy + 'px) rotate(' + (dir * 28) + 'deg)';
-        cardEl.style.opacity = '0';
-        setTimeout(() => answer(dir > 0 ? 5 : 1), 240);
-        return;
-      }
-      if (!moved) {
-        pane.classList.toggle('revealed');
-        renderActions();
-      }
-      cardEl.style.transition = 'transform .3s';
-      cardEl.style.transform = '';
-    });
-    cardEl.addEventListener('pointercancel', () => {
-      dragging = false;
-      cardEl.style.transition = 'transform .3s';
-      cardEl.style.transform = '';
+    if (mode === 'question' || mode === 'teach') return;
+    cardEl.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      pane.classList.toggle('revealed');
+      renderActions();
     });
   }
 

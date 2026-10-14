@@ -1,4 +1,4 @@
-const CACHE = 'suixue-v10';
+const CACHE = 'suixue-v13';
 const ASSETS = [
   './', './index.html', './css/style.css',
   './js/main.js', './js/store.js', './js/srs.js', './js/ui.js', './js/teaching.js', './js/content.js', './js/planning.js',
@@ -37,13 +37,11 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
-  if (url.pathname.indexOf('/content/') !== -1) {
-    e.respondWith(fetch(e.request).then((r) => {
+  e.respondWith(fetch(e.request).then((r) => {
+    if (r && r.ok) {
       const c = r.clone();
       caches.open(CACHE).then((ca) => ca.put(e.request, c));
-      return r;
-    }).catch(() => caches.match(e.request)));
-    return;
-  }
-  e.respondWith(caches.match(e.request).then((r) => r || fetch(e.request)));
+    }
+    return r;
+  }).catch(() => caches.match(e.request, { ignoreSearch: true })));
 });
