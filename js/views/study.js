@@ -27,7 +27,7 @@ export function openStudy(items, teachCount, onDone) {
   document.body.append(stage);
 
   let idx = 0;
-  let session = { teach: 0, ok: 0, no: 0 };
+  let session = { teach: 0, ok: 0, no: 0, topics: new Map() };
   const startedAt = Date.now();
 
   function close() { stage.remove(); }
@@ -69,40 +69,47 @@ export function openStudy(items, teachCount, onDone) {
     const pane = el('div', { class: 'card-pane' });
     const reveal = el('div', { class: 'reveal' });
     const tag = el('div', { class: 'tag' }, subj.icon + ' ' + unit.title);
+    const badgeText = item.mode === 'teach' ? '📖 Study Buddy · 新课'
+      : item.mode === 'example' ? '🧠 Study Buddy · 例题'
+      : item.mode === 'recall' ? '🔄 Study Buddy · 复习'
+      : item.mode === 'word' ? '📇 Study Buddy · 单词'
+      : '🎯 Study Buddy · 测验';
+    const badge = el('div', { class: 'study-badge' }, badgeText);
 
     if (item.mode === 'teach') {
-      pane.append(tag, el('div', { class: 'c-title' }, card.title));
+      pane.append(tag, badge, el('div', { class: 'c-title' }, card.title));
       pane.append(el('div', { class: 'c-body', html: renderBody(card.body) }));
+      pane.append(el('div', { class: 'study-tip' }, '学完后用下方 1–5 告诉我掌握程度。'));
     } else if (item.mode === 'recall') {
-      pane.append(tag, el('div', { class: 'c-title' }, card.title));
+      pane.append(tag, badge, el('div', { class: 'c-title' }, card.title));
       if (card.type === 'example') {
         pane.append(el('div', { class: 'c-body', html: renderBody(card.body) }));
         reveal.append(el('div', { class: 'c-title', style: 'font-size:17px' }, '💡 解答'));
         reveal.append(el('div', { class: 'c-body', html: renderBody(card.solution || '') }));
       } else {
-        pane.append(el('div', { class: 'w-hint' }, '先回忆一下内容，再点开核对'));
+      pane.append(el('div', { class: 'study-tip' }, '先回忆内容，再点卡片或「显示答案」核对。'));
         reveal.append(el('div', { class: 'c-title', style: 'font-size:18px' }, card.title));
         reveal.append(el('div', { class: 'c-body', html: renderBody(card.body) }));
       }
     } else if (item.mode === 'example') {
-      pane.append(tag, el('div', { class: 'ex-badge' }, '例题'));
+      pane.append(tag, badge, el('div', { class: 'ex-badge' }, '例题'));
       pane.append(el('div', { class: 'c-title', style: 'font-size:19px' }, card.title));
       pane.append(el('div', { class: 'c-body', html: renderBody(card.body) }));
-      pane.append(el('div', { class: 'w-hint' }, '先自己想一想，再点开看解答'));
+      pane.append(el('div', { class: 'study-tip' }, '先自己列思路，再点卡片或「显示解答」核对。'));
       reveal.append(el('div', { class: 'c-title', style: 'font-size:17px' }, '💡 解答'));
       reveal.append(el('div', { class: 'c-body', html: renderBody(card.solution || '（暂无解答）') }));
     } else if (item.mode === 'word') {
-      pane.append(tag, el('div', { class: 'w-word' }, card.front));
+      pane.append(tag, badge, el('div', { class: 'w-word' }, card.front));
       if (card.phonetic) pane.append(el('div', { class: 'w-phon' }, card.phonetic));
       const speakBtn = el('button', { class: 'speak', onclick: (e) => { e.stopPropagation(); speakWord(card.front); } }, '🔊 朗读');
       pane.append(speakBtn);
-      pane.append(el('div', { class: 'w-hint' }, '点卡片看释义 · 左右滑判断'));
+      pane.append(el('div', { class: 'study-tip' }, '先回忆意思，再点卡片看答案。'));
       reveal.append(el('div', { class: 'w-meaning' }, card.back));
       if (card.example) reveal.append(el('div', { class: 'w-example' }, card.example));
       if (card.exampleZh) reveal.append(el('div', { class: 'w-exzh' }, card.exampleZh));
       speakWord(card.front);
     } else { // question
-      pane.append(tag, el('div', { class: 'q-stem' }, card.stem));
+      pane.append(tag, badge, el('div', { class: 'q-stem' }, card.stem));
       const opts = el('div', { class: 'opts' });
       const expl = el('div', { class: 'explain' });
       card.options.forEach((o, i) => {
@@ -131,16 +138,29 @@ export function openStudy(items, teachCount, onDone) {
 
     function renderActions() {
       actions.innerHTML = '';
-      if (item.mode === 'teach' || item.mode === 'example') {
-      appendRating(actions);
-      } else if (item.mode === 'recall') {
-      appendRating(actions);
-      } else if (item.mode === 'word') {
-      appendRating(actions);
+      const revealed = pane.classList.contains('revealed');
+      if (item.mode === 'example' || item.mode === 'recall' || item.mode === 'word') {
+        if (!revealed) {
+          actions.append(actBtn(
+            item.mode === 'example' ? '显示解答' : (item.mode === 'word' ? '显示释义' : '显示答案'),
+            'next',
+            revealPane
+          ));
+        } else {
+          appendRating(actions);
+        }
+      } else if (item.mode === 'teach') {
+        appendRating(actions);
       } else {
         if (!answered) actions.append(el('div', { class: 'empty', style: 'color:#6b665c;padding:12px' }, '点击上方选项作答'));
         else actions.append(actBtn('下一题', 'next', () => answer(ok ? 4 : 1)));
       }
+    }
+
+    function revealPane() {
+      pane.classList.add('revealed');
+      pane.scrollTop = pane.scrollHeight;
+      renderActions();
     }
   }
 
@@ -172,6 +192,7 @@ export function openStudy(items, teachCount, onDone) {
   function answer(rating) {
     const item = items[idx];
     const card = item.card;
+    const unit = item.unit, subj = item.subject;
     const level = Math.max(1, Math.min(5, Number(rating) || 1));
     if (item.mode === 'word') {
       const st = getCardState(card.id);
@@ -183,6 +204,12 @@ export function openStudy(items, teachCount, onDone) {
     bumpToday();
     if (item.mode === 'teach') session.teach++;
     if (level >= 3) session.ok++; else session.no++;
+    const topicKey = subj.id + ':' + unit.title;
+    const topic = session.topics.get(topicKey) || { icon: subj.icon, subject: subj.name, title: unit.title, total: 0, good: 0, hard: 0 };
+    topic.total++;
+    if (level >= 3) topic.good++;
+    if (level <= 2) topic.hard++;
+    session.topics.set(topicKey, topic);
     idx++;
     show();
   }
@@ -222,7 +249,10 @@ export function openStudy(items, teachCount, onDone) {
         setTimeout(() => answer(dir > 0), 240);
         return;
       }
-      if (!moved) pane.classList.toggle('revealed');
+      if (!moved) {
+        pane.classList.toggle('revealed');
+        renderActions();
+      }
       cardEl.style.transition = 'transform .3s';
       cardEl.style.transform = '';
     });
@@ -240,10 +270,27 @@ export function openStudy(items, teachCount, onDone) {
     progI.style.width = '100%';
     cnt.textContent = items.length + ' / ' + items.length;
     const wrap = el('div', { class: 'session-end' });
+    const topicList = [...session.topics.values()]
+      .sort((a, b) => (b.hard / Math.max(1, b.total)) - (a.hard / Math.max(1, a.total)))
+      .slice(0, 3);
+    const accuracy = (session.ok + session.no) ? Math.round(session.ok * 100 / (session.ok + session.no)) : 0;
     wrap.append(
       el('div', { class: 'big' }, session.ok >= session.no ? '🎉' : '💪'),
       el('h2', null, '今日学习完成'),
       el('p', null, '新课 ' + session.teach + ' · 掌握 ' + session.ok + ' · 待巩固 ' + session.no),
+      el('p', { class: 'session-diagnosis' }, 'Study Buddy 诊断：正确率 ' + accuracy + '%' + (topicList.length ? '；先巩固 ' + topicList[0].title : '；继续保持当前节奏')),
+    );
+    if (topicList.length) {
+      const topicsBox = el('div', { class: 'summary-topics' });
+      topicList.forEach(topic => {
+        topicsBox.append(el('div', { class: 'summary-topic' }, [
+          el('span', null, topic.icon + ' ' + topic.title),
+          el('b', null, topic.good + '/' + topic.total)
+        ]));
+      });
+      wrap.append(topicsBox);
+    }
+    wrap.append(
       el('button', { class: 'big-btn', onclick: close }, '完成打卡'),
     );
     deck.append(wrap);

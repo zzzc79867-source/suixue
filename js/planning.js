@@ -165,8 +165,8 @@ export function buildDailyQueue(subjects) {
       const st = p[it.card.id];
       if (st && st.seen > 0) continue;
       budget--;
-      const mode = TEACH_TYPES.has(it.card.type) ? 'teach' : it.card.type;
-      (mode === 'teach' ? teach : practice).push({ card: it.card, unit: it.unit, subject: s, mode });
+      const mode = it.card.type === 'example' ? 'example' : (TEACH_TYPES.has(it.card.type) ? 'teach' : it.card.type);
+      ((mode === 'teach' || mode === 'example') ? teach : practice).push({ card: it.card, unit: it.unit, subject: s, mode });
     }
   }
 
