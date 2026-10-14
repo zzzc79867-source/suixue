@@ -1,6 +1,7 @@
 import { el, renderBody, esc } from '../ui.js';
 import { rateCard, masterCard } from '../srs.js';
 import { setMeta, getMeta, getCardState, stampStudy, logSession } from '../store.js';
+import { teachContext } from '../teaching.js';
 
 // items: [{ card, unit, subject, mode }]，mode ∈ teach | recall | word | question
 export function openStudy(items, teachCount, onDone) {
@@ -30,6 +31,7 @@ export function openStudy(items, teachCount, onDone) {
   let session = { teach: 0, ok: 0, no: 0, topics: new Map() };
   const startedAt = Date.now();
   let feedbackMode = false;
+  let teachStage = 0;
 
   function close() { stage.remove(); }
 
@@ -65,6 +67,7 @@ export function openStudy(items, teachCount, onDone) {
 
     let answered = false, ok = false;
     feedbackMode = false;
+    teachStage = 0;
 
     const isConceptLike = item.mode === 'teach' || item.mode === 'recall' || item.mode === 'example';
     const cardEl = el('div', { class: 's-card active' + (isConceptLike ? ' concept-card' : '') });
@@ -79,9 +82,15 @@ export function openStudy(items, teachCount, onDone) {
     const badge = el('div', { class: 'study-badge' }, badgeText);
 
     if (item.mode === 'teach') {
+      const context = teachContext(subj, unit, card);
       pane.append(tag, badge, el('div', { class: 'c-title' }, card.title));
-      pane.append(el('div', { class: 'c-body', html: renderBody(card.body) }));
-      pane.append(el('div', { class: 'study-tip' }, '学完后用下方 1–5 告诉我掌握程度。'));
+      const scene = el('div', { class: 'teach-scene' });
+      scene.append(el('div', { class: 'teach-label' }, '🎬 情景引入'));
+      scene.append(el('div', { class: 'c-body', html: renderBody(context.scene) }));
+      scene.append(el('div', { class: 'teach-label' }, '❓ 先想一下'));
+      scene.append(el('div', { class: 'c-body', html: renderBody(context.ask) }));
+      scene.append(el('div', { class: 'study-tip' }, '先不要记公式。想 10 秒，再点「开始讲解」。'));
+      pane.append(scene);
     } else if (item.mode === 'recall') {
       pane.append(tag, badge, el('div', { class: 'c-title' }, card.title));
       if (card.type === 'example') {
@@ -141,7 +150,10 @@ export function openStudy(items, teachCount, onDone) {
     function renderActions() {
       actions.innerHTML = '';
       const revealed = pane.classList.contains('revealed');
-      if (item.mode === 'example' || item.mode === 'recall' || item.mode === 'word') {
+      if (item.mode === 'teach') {
+        if (!teachStage) actions.append(actBtn('开始讲解', 'next', revealTeach));
+        else appendRating(actions);
+      } else if (item.mode === 'example' || item.mode === 'recall' || item.mode === 'word') {
         if (!revealed) {
           actions.append(actBtn(
             item.mode === 'example' ? '显示解答' : (item.mode === 'word' ? '显示释义' : '显示答案'),
@@ -161,6 +173,22 @@ export function openStudy(items, teachCount, onDone) {
 
     function revealPane() {
       pane.classList.add('revealed');
+      pane.scrollTop = pane.scrollHeight;
+      renderActions();
+    }
+
+    function revealTeach() {
+      if (teachStage) return;
+      teachStage = 1;
+      const context = teachContext(subj, unit, card);
+      const box = el('div', { class: 'teach-explain' });
+      box.append(el('div', { class: 'teach-label' }, '🧭 为什么学'));
+      box.append(el('div', { class: 'c-body', html: renderBody(context.why) }));
+      box.append(el('div', { class: 'teach-label' }, '💡 概念解释'));
+      box.append(el('div', { class: 'c-body', html: renderBody(context.explain) }));
+      box.append(el('div', { class: 'teach-label' }, '📖 概念与公式'));
+      box.append(el('div', { class: 'c-body', html: renderBody(card.body) }));
+      pane.append(box);
       pane.scrollTop = pane.scrollHeight;
       renderActions();
     }

@@ -1,7 +1,7 @@
-const CACHE = 'suixue-v9';
+const CACHE = 'suixue-v10';
 const ASSETS = [
   './', './index.html', './css/style.css',
-  './js/main.js', './js/store.js', './js/srs.js', './js/ui.js', './js/content.js', './js/planning.js',
+  './js/main.js', './js/store.js', './js/srs.js', './js/ui.js', './js/teaching.js', './js/content.js', './js/planning.js',
   './js/views/home.js', './js/views/plan.js', './js/views/settings.js', './js/views/import.js', './js/views/study.js',
   './manifest.webmanifest', './icons/icon.svg',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',
