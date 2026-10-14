@@ -486,6 +486,29 @@ button:active { transform: scale(0.97); }
   font-size: 12.5px;
   color: var(--text-sub);
 }
+.answer-feedback {
+  width: 100%;
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid rgba(201,169,110,0.24);
+  border-radius: 16px;
+  background: rgba(201,169,110,0.07);
+}
+.feedback-title {
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 14px;
+}
+.feedback-title.good { color: var(--green); }
+.feedback-title.hard { color: var(--red); }
+.feedback-label {
+  margin: 14px 0 8px;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 .math-fallback {
   background: var(--accent-dim);
   color: var(--accent-bright);

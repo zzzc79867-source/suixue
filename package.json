@@ -1,7 +1,7 @@
 {
   "name": "suixue",
   "private": true,
-  "version": "0.9.0",
+  "version": "0.10.0",
   "type": "module",
   "description": "随学 · 碎片化期末复习与四级备考 PWA",
   "scripts": {

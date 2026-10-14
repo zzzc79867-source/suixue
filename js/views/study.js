@@ -29,6 +29,7 @@ export function openStudy(items, teachCount, onDone) {
   let idx = 0;
   let session = { teach: 0, ok: 0, no: 0, topics: new Map() };
   const startedAt = Date.now();
+  let feedbackMode = false;
 
   function close() { stage.remove(); }
 
@@ -63,6 +64,7 @@ export function openStudy(items, teachCount, onDone) {
     deck.innerHTML = '';
 
     let answered = false, ok = false;
+    feedbackMode = false;
 
     const isConceptLike = item.mode === 'teach' || item.mode === 'recall' || item.mode === 'example';
     const cardEl = el('div', { class: 's-card active' + (isConceptLike ? ' concept-card' : '') });
@@ -120,7 +122,7 @@ export function openStudy(items, teachCount, onDone) {
           answered = true;
           if (i === card.answer) { b.classList.add('correct'); ok = true; }
           else { b.classList.add('wrong'); opts.children[card.answer].classList.add('correct'); }
-          expl.innerHTML = '<b>解析</b>　' + esc(card.explanation || '（无解析）');
+          expl.innerHTML = '<b>解析</b>　' + renderBody(card.explanation || '（无解析）');
           expl.classList.add('show');
           renderActions();
         };
@@ -190,10 +192,12 @@ export function openStudy(items, teachCount, onDone) {
   }
 
   function answer(rating) {
+    if (feedbackMode) return;
     const item = items[idx];
     const card = item.card;
     const unit = item.unit, subj = item.subject;
     const level = Math.max(1, Math.min(5, Number(rating) || 1));
+    feedbackMode = true;
     if (item.mode === 'word') {
       const st = getCardState(card.id);
       if (level === 5 && st.seen === 0) masterCard(card.id);
@@ -210,6 +214,46 @@ export function openStudy(items, teachCount, onDone) {
     if (level >= 3) topic.good++;
     if (level <= 2) topic.hard++;
     session.topics.set(topicKey, topic);
+    showAnswerFeedback(item, level);
+    actions.innerHTML = '';
+    actions.append(actBtn('下一张', 'next', nextCard));
+  }
+
+  function showAnswerFeedback(item, level) {
+    const card = item.card;
+    const pane = deck.querySelector('.card-pane');
+    if (!pane) return;
+    if (item.mode === 'example' || item.mode === 'recall' || item.mode === 'word') {
+      pane.classList.add('revealed');
+    }
+    const box = el('div', { class: 'answer-feedback' });
+    box.append(el('div', { class: 'feedback-title ' + (level >= 3 ? 'good' : 'hard') },
+      level >= 3 ? '✅ 已记录：掌握程度 ' + level : '⚠️ 已记录：需要巩固'));
+    if (item.mode === 'question') {
+      box.append(el('div', { class: 'feedback-label' }, '正确答案'));
+      box.append(el('div', { class: 'c-body', html: renderBody(card.options[card.answer] || '') }));
+      box.append(el('div', { class: 'feedback-label' }, '解析'));
+      box.append(el('div', { class: 'c-body', html: renderBody(card.explanation || '（无解析）') }));
+    } else if (item.mode === 'example' || (item.mode === 'recall' && card.type === 'example')) {
+      box.append(el('div', { class: 'feedback-label' }, '解答与思路'));
+      box.append(el('div', { class: 'c-body', html: renderBody(card.solution || card.body || '（暂无解答）') }));
+    } else if (item.mode === 'word') {
+      box.append(el('div', { class: 'feedback-label' }, '答案'));
+      box.append(el('div', { class: 'c-body', html: renderBody(card.back || '') }));
+      if (card.example || card.exampleZh) {
+        box.append(el('div', { class: 'feedback-label' }, '例句'));
+        box.append(el('div', { class: 'c-body', html: renderBody([card.example, card.exampleZh].filter(Boolean).join('\n')) }));
+      }
+    } else {
+      box.append(el('div', { class: 'feedback-label' }, '答案 / 本卡要点'));
+      box.append(el('div', { class: 'c-body', html: renderBody(card.body || card.solution || '（暂无解析）') }));
+    }
+    pane.append(box);
+    pane.scrollTop = pane.scrollHeight;
+  }
+
+  function nextCard() {
+    feedbackMode = false;
     idx++;
     show();
   }
@@ -246,7 +290,7 @@ export function openStudy(items, teachCount, onDone) {
         cardEl.style.transition = 'transform .3s,opacity .3s';
         cardEl.style.transform = 'translate(' + (dir * 150) + '%,' + dy + 'px) rotate(' + (dir * 28) + 'deg)';
         cardEl.style.opacity = '0';
-        setTimeout(() => answer(dir > 0), 240);
+        setTimeout(() => answer(dir > 0 ? 5 : 1), 240);
         return;
       }
       if (!moved) {
