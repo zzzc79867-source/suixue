@@ -110,7 +110,50 @@ function replaceTokens(value) {
 function toTex(input) {
   const normalized = String(input ?? '').trim().replace(/\s+/g, ' ');
   if (EXACT_FORMULAS.has(normalized)) return EXACT_FORMULAS.get(normalized);
-  return replaceTokens(normalized);
+  return toHorizontalFractions(replaceTokens(normalized));
+}
+
+function groupText(text, slashIndex) {
+  const isOpen = (ch) => ch === '(' || ch === '[' || ch === '{';
+  const isClose = (ch) => ch === ')' || ch === ']' || ch === '}';
+  const tokenPattern = /[A-Za-z0-9°²³√πφωΔ∂]+/u;
+
+  if (text[slashIndex - 1] === ')' || text[slashIndex - 1] === ']' || text[slashIndex - 1] === '}') {
+    const close = slashIndex - 1;
+    const openChar = { ')': '(', ']': '[', '}': '{' }[text[close]];
+    let depth = 1;
+    let open = close - 1;
+    while (open >= 0 && depth > 0) {
+      if (isClose(text[open])) depth++;
+      if (isOpen(text[open])) depth--;
+      open--;
+    }
+    open++;
+    if (open > 0 && tokenPattern.test(text[open - 1] || '')) open--;
+    return text.slice(open, slashIndex);
+  }
+
+  const leftMatch = text.slice(0, slashIndex).match(tokenPattern.source + '$', 'u');
+  if (leftMatch) return leftMatch[0];
+  return '';
+}
+
+function toHorizontalFractions(text) {
+  let result = String(text || '');
+  let count = 0;
+
+  while (count++ < 30) {
+    const slashIndex = [...result].findIndex((ch, i) => ch === '/' && result[i - 1] !== '\\');
+    if (slashIndex < 0) return result;
+    const before = groupText(result, slashIndex);
+    const rightMatch = result.slice(slashIndex + 1).match(/^[A-Za-z0-9°²³√πφωΔ∂]+|\([^()]+\)|\[[^\[\]]+\]|\{[^{}]+\}/u);
+    const after = rightMatch ? rightMatch[0] : '';
+    if (!before || !after) return result;
+    const clean = (value) => value.replace(/^\((.*)\)$/, '$1');
+    result = result.slice(0, slashIndex - before.length) + '\\frac{' + clean(before) + '}{' + clean(after) + '}' + result.slice(slashIndex + after.length + 1);
+  }
+
+  return result;
 }
 
 export function renderMath(input, display = false) {
