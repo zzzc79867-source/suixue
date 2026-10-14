@@ -1,6 +1,6 @@
 import { el, toast } from '../ui.js';
 import { loadSubjects } from '../content.js';
-import { buildDailyQueue } from '../planning.js';
+import { buildDailyQueue, getWeakTopics, studyStats, achievements } from '../planning.js';
 import { getMeta, getHistory } from '../store.js';
 import { fmtDate, dayLeft } from '../srs.js';
 import { openStudy } from './study.js';
@@ -40,6 +40,8 @@ export async function renderHome(container, nav) {
 
   const { teach, practice } = buildDailyQueue(subjects);
   const totalToday = teach.length + practice.length;
+  const stats = studyStats(subjects);
+  const weakTopics = getWeakTopics(subjects, 3);
 
   // 顶部
   const top = el('div', { class: 'topbar' });
@@ -70,6 +72,54 @@ export async function renderHome(container, nav) {
     heatGrid(getHistory())
   );
   container.append(heatCard);
+
+  // Study Buddy 风格：数据驱动的今日建议
+  const adviceCard = el('div', { class: 'grad', style: 'margin-top:14px' });
+  adviceCard.append(el('h2', null, '🎯 今日建议'));
+  if (weakTopics.length) {
+    adviceCard.append(el('div', { class: 'countdown', html:
+      '先处理薄弱点：<b>' + weakTopics.map(x => x.unit.title.replace(/^第/, '')).join('</b>、<b>') + '</b>'
+    }));
+  } else if (practice.length) {
+    adviceCard.append(el('div', { class: 'countdown', html: '先做 <b>' + practice.length + '</b> 张练习/复习，再进入新知识。' }));
+  } else if (teach.length) {
+    adviceCard.append(el('div', { class: 'countdown', html: '今天以新知识为主，共 <b>' + teach.length + '</b> 张概念卡。' }));
+  } else {
+    adviceCard.append(el('div', { class: 'countdown' }, '任务已完成，可以做一页错题或休息。'));
+  }
+  container.append(adviceCard);
+
+  // Study Buddy 风格：弱项追踪
+  const weakCard = el('div', { class: 'grad', style: 'margin-top:14px' });
+  weakCard.append(el('h2', null, '🩺 薄弱点'));
+  if (!weakTopics.length) {
+    weakCard.append(el('div', { class: 'countdown' }, '暂无明显弱项；继续学习会自动生成。'));
+  } else {
+    weakTopics.forEach(topic => {
+      weakCard.append(el('div', { class: 'list-item' }, [
+        el('div', { class: 'ic' }, topic.subject.icon),
+        el('div', { class: 'meta' }, [
+          el('b', null, topic.unit.title),
+          el('span', null, topic.subject.name + ' · 弱项分 ' + topic.score)
+        ]),
+        el('div', { class: 'badge due' }, topic.cards.length + ' 卡')
+      ]));
+    });
+  }
+  container.append(weakCard);
+
+  // Study Buddy 风格：学习仪表盘与成就
+  const statsCard = el('div', { class: 'grad', style: 'margin-top:14px' });
+  statsCard.append(el('h2', null, '📊 学习仪表盘'));
+  statsCard.append(el('div', { class: 'countdown', html:
+    '已学 <b>' + stats.seen + '</b> 张 · 掌握 <b>' + stats.mastered + '</b> 张 · 正确率 <b>' + stats.accuracy + '%</b>'
+  }));
+  const badges = el('div', { class: 'badge-row' });
+  for (const item of achievements(subjects)) {
+    badges.append(el('span', { class: 'badge ' + (item.got ? 'ok' : '') }, item.icon + ' ' + item.label));
+  }
+  statsCard.append(badges);
+  container.append(statsCard);
 
   // 最近考试
   let nearest = null;

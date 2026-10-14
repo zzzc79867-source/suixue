@@ -20,6 +20,24 @@ export function schedule(cardId, ok) {
   });
 }
 
+// Study Buddy 5 级自评：1 没懂 / 2 很难 / 3 一般 / 4 会了 / 5 太简单
+export function rateCard(cardId, rating) {
+  const level = Math.max(1, Math.min(5, Number(rating) || 1));
+  const st = getCardState(cardId);
+  const box = level;
+  const days = BOX_INTERVALS[box - 1];
+  return setCardState(cardId, {
+    box,
+    dueAt: Date.now() + days * 86400000,
+    seen: st.seen + 1,
+    correct: st.correct + (level >= 3 ? 1 : 0),
+    wrong: st.wrong + (level >= 3 ? 0 : 1),
+    difficulty: level,
+    lastAt: Date.now(),
+    status: box >= BOX_INTERVALS.length ? 'mastered' : 'learning'
+  });
+}
+
 // 单词自测筛选：新卡“认识”直接判定为掌握，跳过复习
 export function masterCard(cardId) {
   const st = getCardState(cardId);

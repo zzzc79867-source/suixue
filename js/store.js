@@ -43,6 +43,16 @@ export function stampStudy() {
 }
 export function getHistory() { return getMeta('history', {}); }
 
+// 学习会话日志（Study Buddy 风格，只保留最近 1000 条）
+export function logSession(entry) {
+  const m = readMeta();
+  const sessions = m.sessions || [];
+  sessions.unshift({ id: 'session_' + Date.now(), timestamp: new Date().toISOString(), ...entry });
+  m.sessions = sessions.slice(0, 1000);
+  writeMeta(m);
+}
+export function getSessions() { return getMeta('sessions', []); }
+
 // 每日新卡上限（0 = 不限，按考试倒计时自动分配）
 export function getDailyCap() { return getMeta('dailyCap', 30); }
 export function setDailyCap(n) { setMeta('dailyCap', Math.max(0, Number(n) || 0)); }

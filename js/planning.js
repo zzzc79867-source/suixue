@@ -1,6 +1,6 @@
 // 计划引擎：学科统计 + 每日任务队列（按权重 + 倒计时分配）
 import { flatCards } from './content.js';
-import { loadProgress, getWeights, getDailyCap, getSpeed, getScope, getChapters } from './store.js';
+import { loadProgress, getWeights, getDailyCap, getSpeed, getScope, getChapters, getMeta } from './store.js';
 import { dayLeft } from './srs.js';
 
 const DEFAULT_WEIGHT = { cet4: 5, wulihua: 4, diangong: 4 };
@@ -49,6 +49,60 @@ export function subjectStats(subject) {
   const days = dayLeft(subject.examDate);
   const newPerDay = days > 0 ? Math.ceil(remainingNew / days) * getSpeed() : 0;
   return { total, learned, mastered, due, remainingNew, days, newPerDay };
+}
+
+// Study Buddy：按「科目 · 单元」聚合 1–2 级自评和答错记录
+export function getWeakTopics(subjects, limit = 5) {
+  const p = loadProgress();
+  const map = new Map();
+  for (const subject of subjects) {
+    for (const { card, unit } of flatCards(subject)) {
+      const st = p[card.id];
+      if (!st || !st.seen) continue;
+      const hard = st.difficulty && st.difficulty <= 2 ? (st.difficulty === 1 ? 3 : 2) : 0;
+      const score = st.wrong * 2 + hard;
+      if (!score) continue;
+      const key = subject.id + ':' + unit.title;
+      const cur = map.get(key) || { key, subject, unit, score: 0, cards: [] };
+      cur.score += score;
+      cur.cards.push(card.id);
+      map.set(key, cur);
+    }
+  }
+  return [...map.values()].sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+// Study Buddy：全局统计与成就
+export function studyStats(subjects) {
+  const p = loadProgress();
+  let seen = 0, mastered = 0, correct = 0, wrong = 0, due = 0;
+  for (const subject of subjects) {
+    for (const { card } of flatCards(subject)) {
+      const st = p[card.id];
+      if (!st || !st.seen) continue;
+      seen++; correct += st.correct; wrong += st.wrong;
+      if (st.status === 'mastered') mastered++;
+      if (st.status !== 'mastered' && st.dueAt && st.dueAt <= Date.now()) due++;
+    }
+  }
+  const attempts = correct + wrong;
+  return {
+    seen, mastered, due,
+    accuracy: attempts ? Math.round(correct * 100 / attempts) : 0,
+    weakCount: getWeakTopics(subjects, 99).length
+  };
+}
+
+export function achievements(subjects) {
+  const stats = studyStats(subjects);
+  return [
+    { icon: '📚', label: '首次学习', got: stats.seen > 0 },
+    { icon: '🔥', label: '3 天连续', got: getMeta('streak', 0) >= 3 },
+    { icon: '💪', label: '7 天连续', got: getMeta('streak', 0) >= 7 },
+    { icon: '🧠', label: '正确率 80%+', got: stats.accuracy >= 80 && stats.seen >= 10 },
+    { icon: '📇', label: '掌握 50 卡', got: stats.mastered >= 50 },
+    { icon: '🌟', label: '掌握 100 卡', got: stats.mastered >= 100 }
+  ];
 }
 
 // 按权重把「每日新卡上限」分配到各科

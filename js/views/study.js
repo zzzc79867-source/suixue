@@ -1,6 +1,6 @@
 import { el, renderBody, esc } from '../ui.js';
-import { schedule, masterCard } from '../srs.js';
-import { setMeta, getMeta, getCardState, stampStudy } from '../store.js';
+import { rateCard, masterCard } from '../srs.js';
+import { setMeta, getMeta, getCardState, stampStudy, logSession } from '../store.js';
 
 // items: [{ card, unit, subject, mode }]，mode ∈ teach | recall | word | question
 export function openStudy(items, teachCount, onDone) {
@@ -28,6 +28,7 @@ export function openStudy(items, teachCount, onDone) {
 
   let idx = 0;
   let session = { teach: 0, ok: 0, no: 0 };
+  const startedAt = Date.now();
 
   function close() { stage.remove(); }
 
@@ -131,19 +132,33 @@ export function openStudy(items, teachCount, onDone) {
     function renderActions() {
       actions.innerHTML = '';
       if (item.mode === 'teach' || item.mode === 'example') {
-        actions.append(actBtn(item.mode === 'example' ? '没看懂' : '没听懂', 'mid', () => answer(false)));
-        actions.append(actBtn('我明白了', 'yes', () => answer(true)));
+      appendRating(actions);
       } else if (item.mode === 'recall') {
-        actions.append(actBtn('忘了', 'no', () => answer(false)));
-        actions.append(actBtn('记得', 'yes', () => answer(true)));
+      appendRating(actions);
       } else if (item.mode === 'word') {
-        actions.append(actBtn('不认识', 'no', () => answer(false)));
-        actions.append(actBtn('认识', 'yes', () => answer(true)));
+      appendRating(actions);
       } else {
         if (!answered) actions.append(el('div', { class: 'empty', style: 'color:#6b665c;padding:12px' }, '点击上方选项作答'));
-        else actions.append(actBtn('下一题', 'next', () => answer(ok)));
+        else actions.append(actBtn('下一题', 'next', () => answer(ok ? 4 : 1)));
       }
     }
+  }
+
+  function appendRating(actions) {
+    const row = el('div', { class: 'rate-row' });
+    [
+      ['1', '没懂', '😰'],
+      ['2', '很难', '😓'],
+      ['3', '一般', '🤔'],
+      ['4', '会了', '😊'],
+      ['5', '太简单', '🔥']
+    ].forEach(([rating, label, icon]) => {
+      row.append(el('button', { class: 'rate-btn', onclick: () => answer(Number(rating)) }, [
+        el('span', { class: 'rate-icon' }, icon),
+        el('span', { class: 'rate-label' }, label)
+      ]));
+    });
+    actions.append(row);
   }
 
   function actBtn(label, kind, fn) {
@@ -154,19 +169,20 @@ export function openStudy(items, teachCount, onDone) {
     return b;
   }
 
-  function answer(okVal) {
+  function answer(rating) {
     const item = items[idx];
     const card = item.card;
+    const level = Math.max(1, Math.min(5, Number(rating) || 1));
     if (item.mode === 'word') {
       const st = getCardState(card.id);
-      if (okVal && st.seen === 0) masterCard(card.id);
-      else schedule(card.id, okVal);
+      if (level === 5 && st.seen === 0) masterCard(card.id);
+      else rateCard(card.id, level);
     } else {
-      schedule(card.id, okVal);
+      rateCard(card.id, level);
     }
     bumpToday();
     if (item.mode === 'teach') session.teach++;
-    if (okVal) session.ok++; else session.no++;
+    if (level >= 3) session.ok++; else session.no++;
     idx++;
     show();
   }
@@ -231,6 +247,13 @@ export function openStudy(items, teachCount, onDone) {
       el('button', { class: 'big-btn', onclick: close }, '完成打卡'),
     );
     deck.append(wrap);
+    logSession({
+      type: 'study',
+      cards: items.length,
+      correct: session.ok,
+      wrong: session.no,
+      minutes: Math.max(1, Math.round((Date.now() - startedAt) / 60000))
+    });
     if (onDone) onDone();
   }
 

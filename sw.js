@@ -1,4 +1,4 @@
-const CACHE = 'suixue-v6';
+const CACHE = 'suixue-v7';
 const ASSETS = [
   './', './index.html', './css/style.css',
   './js/main.js', './js/store.js', './js/srs.js', './js/ui.js', './js/content.js', './js/planning.js',
