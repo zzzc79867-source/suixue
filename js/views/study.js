@@ -65,44 +65,43 @@ export function openStudy(items, teachCount, onDone) {
 
     const isConceptLike = item.mode === 'teach' || item.mode === 'recall' || item.mode === 'example';
     const cardEl = el('div', { class: 's-card active' + (isConceptLike ? ' concept-card' : '') });
-    const inner = el('div', { class: 'inner' });
-    const front = el('div', { class: 'face front' });
-    const back = el('div', { class: 'face back' });
+    const pane = el('div', { class: 'card-pane' });
+    const reveal = el('div', { class: 'reveal' });
     const tag = el('div', { class: 'tag' }, subj.icon + ' ' + unit.title);
 
     if (item.mode === 'teach') {
-      front.append(tag, el('div', { class: 'c-title' }, card.title));
-      front.append(el('div', { class: 'c-body', html: renderBody(card.body) }));
+      pane.append(tag, el('div', { class: 'c-title' }, card.title));
+      pane.append(el('div', { class: 'c-body', html: renderBody(card.body) }));
     } else if (item.mode === 'recall') {
-      front.append(tag, el('div', { class: 'c-title' }, card.title));
+      pane.append(tag, el('div', { class: 'c-title' }, card.title));
       if (card.type === 'example') {
-        front.append(el('div', { class: 'c-body', html: renderBody(card.body) }));
-        back.append(el('div', { class: 'c-title', style: 'font-size:17px' }, '💡 解答'));
-        back.append(el('div', { class: 'c-body', html: renderBody(card.solution || '') }));
+        pane.append(el('div', { class: 'c-body', html: renderBody(card.body) }));
+        reveal.append(el('div', { class: 'c-title', style: 'font-size:17px' }, '💡 解答'));
+        reveal.append(el('div', { class: 'c-body', html: renderBody(card.solution || '') }));
       } else {
-        front.append(el('div', { class: 'w-hint' }, '先回忆一下内容，再点开核对'));
-        back.append(el('div', { class: 'c-title', style: 'font-size:18px' }, card.title));
-        back.append(el('div', { class: 'c-body', html: renderBody(card.body) }));
+        pane.append(el('div', { class: 'w-hint' }, '先回忆一下内容，再点开核对'));
+        reveal.append(el('div', { class: 'c-title', style: 'font-size:18px' }, card.title));
+        reveal.append(el('div', { class: 'c-body', html: renderBody(card.body) }));
       }
     } else if (item.mode === 'example') {
-      front.append(tag, el('div', { class: 'ex-badge' }, '例题'));
-      front.append(el('div', { class: 'c-title', style: 'font-size:19px' }, card.title));
-      front.append(el('div', { class: 'c-body', html: renderBody(card.body) }));
-      front.append(el('div', { class: 'w-hint' }, '先自己想一想，再点开看解答'));
-      back.append(el('div', { class: 'c-title', style: 'font-size:17px' }, '💡 解答'));
-      back.append(el('div', { class: 'c-body', html: renderBody(card.solution || '（暂无解答）') }));
+      pane.append(tag, el('div', { class: 'ex-badge' }, '例题'));
+      pane.append(el('div', { class: 'c-title', style: 'font-size:19px' }, card.title));
+      pane.append(el('div', { class: 'c-body', html: renderBody(card.body) }));
+      pane.append(el('div', { class: 'w-hint' }, '先自己想一想，再点开看解答'));
+      reveal.append(el('div', { class: 'c-title', style: 'font-size:17px' }, '💡 解答'));
+      reveal.append(el('div', { class: 'c-body', html: renderBody(card.solution || '（暂无解答）') }));
     } else if (item.mode === 'word') {
-      front.append(tag, el('div', { class: 'w-word' }, card.front));
-      if (card.phonetic) front.append(el('div', { class: 'w-phon' }, card.phonetic));
+      pane.append(tag, el('div', { class: 'w-word' }, card.front));
+      if (card.phonetic) pane.append(el('div', { class: 'w-phon' }, card.phonetic));
       const speakBtn = el('button', { class: 'speak', onclick: (e) => { e.stopPropagation(); speakWord(card.front); } }, '🔊 朗读');
-      front.append(speakBtn);
-      front.append(el('div', { class: 'w-hint' }, '点卡片看释义 · 左右滑判断'));
-      back.append(el('div', { class: 'w-meaning' }, card.back));
-      if (card.example) back.append(el('div', { class: 'w-example' }, card.example));
-      if (card.exampleZh) back.append(el('div', { class: 'w-exzh' }, card.exampleZh));
+      pane.append(speakBtn);
+      pane.append(el('div', { class: 'w-hint' }, '点卡片看释义 · 左右滑判断'));
+      reveal.append(el('div', { class: 'w-meaning' }, card.back));
+      if (card.example) reveal.append(el('div', { class: 'w-example' }, card.example));
+      if (card.exampleZh) reveal.append(el('div', { class: 'w-exzh' }, card.exampleZh));
       speakWord(card.front);
     } else { // question
-      front.append(tag, el('div', { class: 'q-stem' }, card.stem));
+      pane.append(tag, el('div', { class: 'q-stem' }, card.stem));
       const opts = el('div', { class: 'opts' });
       const expl = el('div', { class: 'explain' });
       card.options.forEach((o, i) => {
@@ -119,15 +118,15 @@ export function openStudy(items, teachCount, onDone) {
         };
         opts.append(b);
       });
-      front.append(opts, expl);
+      pane.append(opts, expl);
     }
 
-    inner.append(front, back);
-    cardEl.append(inner);
+    if (reveal.childNodes.length) pane.append(reveal);
+    cardEl.append(pane);
     deck.append(cardEl);
 
     renderActions();
-    attachGesture(cardEl, item.mode);
+    attachGesture(cardEl, pane, item.mode);
 
     function renderActions() {
       actions.innerHTML = '';
@@ -182,7 +181,7 @@ export function openStudy(items, teachCount, onDone) {
     } catch (e) {}
   }
 
-  function attachGesture(cardEl, mode) {
+  function attachGesture(cardEl, pane, mode) {
     let dragging = false, moved = false, sx = 0, sy = 0, dx = 0, dy = 0;
     cardEl.addEventListener('pointerdown', (e) => {
       if (mode === 'question' || mode === 'teach') return;
@@ -207,7 +206,7 @@ export function openStudy(items, teachCount, onDone) {
         setTimeout(() => answer(dir > 0), 240);
         return;
       }
-      if (!moved) cardEl.classList.toggle('flip');
+      if (!moved) pane.classList.toggle('revealed');
       cardEl.style.transition = 'transform .3s';
       cardEl.style.transform = '';
     });

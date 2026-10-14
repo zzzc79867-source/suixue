@@ -1,3 +1,5 @@
+import { renderMath } from './math.js';
+
 // DOM 工具 + 轻量富文本渲染
 export function el(tag, attrs, children) {
   const n = document.createElement(tag);
@@ -26,7 +28,7 @@ export function renderBody(text) {
   const closeList = () => { if (list) { out.push(list.outerHTML); list = null; } };
   const inline = s => esc(s)
     .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
-    .replace(/`(.+?)`/g, '<span class="f">$1</span>');
+    .replace(/`(.+?)`/g, (_, formula) => renderMath(formula));
   for (const raw of lines) {
     const line = raw.trim();
     if (!line) { closeList(); continue; }
